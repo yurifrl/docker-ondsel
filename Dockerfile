@@ -1,38 +1,43 @@
-FROM ghcr.io/linuxserver/baseimage-kasmvnc:debianbookworm
+FROM ghcr.io/linuxserver/baseimage-kasmvnc:debianbookworm AS base
 
-# set version label
+# Set version label and maintainer
 ARG BUILD_DATE
 ARG VERSION
-ARG FREECAD_VERSION
 LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="thelamer"
 
-# title
+# Environment Variables
 ENV TITLE=FreeCAD
 
-RUN \
-  echo "**** add icon ****" && \
-  curl -o \
-    /kclient/public/icon.png \
-    https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/freecad-logo.png && \
-  echo "**** install packages ****" && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends \
-    freecad \
-    python3-pyside2.qtwebchannel \
-    python3-pyside2.qtwebengine* && \
-  echo "**** cleanup ****" && \
-  apt-get autoclean && \
-  rm -rf \
-    /config/.cache \
-    /var/lib/apt/lists/* \
-    /var/tmp/* \
-    /tmp/*
+# Adding the FreeCAD icon
+RUN curl -o /kclient/public/icon.png https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/freecad-logo.png
 
-# add local files
+# Setup
+RUN apt-get update
+
+# Install main application
+RUN apt-get install -y --no-install-recommends freecad
+
+# Install additional libraries
+RUN apt-get install -y --no-install-recommends \
+  python3-pyside2.qtwebchannel \
+  python3-pyside2.qtwebengine* 
+
+# Cleanup
+RUN apt-get autoclean && apt-get clean &# rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/*
+
+FROM base
+
+ENV FILE_NAME=Ondsel_ES_2024.2.0.37191-Linux-x86_64.AppImage
+
+COPY ./dist/$FILE_NAME freecad.AppImage
+RUN chmod +x ./freecad.AppImage 
+RUN ./freecad.AppImage --appimage-extract
+RUN chmod +x ./squashfs-root/AppRun 
+
+# Add local files
 COPY /root /
 
-# ports and volumes
+# Set ports and volumes
 EXPOSE 3000
-
 VOLUME /config
