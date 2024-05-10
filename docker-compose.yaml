@@ -1,5 +1,6 @@
 services:
   ondsel:
+    image: lscr.io/linuxserver/ondsel:latest
     build:
       context: .
       dockerfile: Dockerfile
